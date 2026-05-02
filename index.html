@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OBS Presentation Dock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #09090b; color: #fafafa; font-family: ui-sans-serif, system-ui; user-select: none; }
+        .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; }
+        .deck-btn { aspect-ratio: 1/1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: 16px; font-weight: 700; font-size: 0.8rem; border: 2px solid #27272a; background: #18181b; }
+        .active-btn { border-color: #3b82f6 !important; background: #1e3a8a !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
+        .mute-active { background: #7f1d1d !important; border-color: #ef4444 !important; }
+        .glass { background: rgba(12, 12, 12, 0.95); backdrop-filter: blur(15px); border-bottom: 1px solid #27272a; }
+    </style>
+</head>
+<body class="min-h-screen pb-20">
+
+    <div class="sticky top-0 z-50 glass p-6 mb-6">
+        <div class="max-w-2xl mx-auto">
+            <div class="flex justify-between items-start mb-4">
+                <div class="flex-1">
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">CANLI SAHNE</p>
+                    <h1 id="currentName" class="text-3xl font-black truncate tracking-tighter">---</h1>
+                </div>
+                <div class="text-right ml-4">
+                    <p id="statusText" class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">OFFLINE</p>
+                    <div class="flex justify-end"><span id="statusDot" class="w-3 h-3 rounded-full bg-red-600"></span></div>
+                </div>
+            </div>
+            
+            <div class="w-full bg-zinc-800 h-2 rounded-full mb-3 overflow-hidden">
+                <div id="progressBar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div class="flex justify-between text-[10px] font-black uppercase text-zinc-500">
+                <div id="counter">SAHNE 0 / 0</div>
+                <div id="nextLabel" class="text-blue-400 italic font-bold">SIRADA: ---</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button onclick="control('prev')" class="bg-zinc-900 h-20 rounded-3xl flex items-center justify-center text-3xl border border-zinc-800 active:scale-95 transition-all">◀️</button>
+            <button onclick="control('next')" class="bg-blue-600 h-20 rounded-3xl flex items-center justify-center text-3xl border border-blue-500 shadow-lg active:scale-95 transition-all">▶️</button>
+            <button id="muteBtn" onclick="control('mute')" class="col-span-2 bg-zinc-900 h-16 rounded-3xl flex items-center justify-center gap-4 font-black border border-zinc-800 transition-all">
+                <span id="muteIcon" class="text-xl">🔊</span> 
+                <span id="muteText">HOPARLÖR AÇIK</span>
+            </button>
+        </div>
+
+        <h2 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-4 px-2 italic">Matrix Kontrol</h2>
+        <div id="deck" class="deck-grid"></div>
+    </div>
+
+    <script>
+        async function updateState() {
+            try {
+                const res = await fetch('/api/state');
+                const data = await res.json();
+                
+                if (data.error) {
+                    document.getElementById('statusText').innerText = "DATA ERROR";
+                    document.getElementById('statusDot').className = "w-3 h-3 rounded-full bg-yellow-500";
+                    return; // Hata varsa güncelleme yapma
+                }
+
+                // UI Güncelleme
+                document.getElementById('currentName').innerText = data.current;
+                document.getElementById('nextLabel').innerText = `SIRADA: ${data.next}`;
+                document.getElementById('counter').innerText = `SAHNE ${data.index} / ${data.total}`;
+                
+                const percent = (data.index / data.total) * 100;
+                document.getElementById('progressBar').style.width = `${percent}%`;
+
+                // Hoparlör Mute
+                const mBtn = document.getElementById('muteBtn');
+                if(data.isMuted) {
+                    mBtn.classList.add('mute-active');
+                    document.getElementById('muteText').innerText = "HOPARLÖR KAPALI";
+                    document.getElementById('muteIcon').innerText = "🔇";
+                } else {
+                    mBtn.classList.remove('mute-active');
+                    document.getElementById('muteText').innerText = "HOPARLÖR AÇIK";
+                    document.getElementById('muteIcon').innerText = "🔊";
+                }
+
+                // Deck (Matrix)
+                const deck = document.getElementById('deck');
+                if(deck.children.length !== data.allScenes.length) {
+                    deck.innerHTML = '';
+                    data.allScenes.forEach((scene, i) => {
+                        const btn = document.createElement('button');
+                        btn.id = `btn-${i}`;
+                        btn.className = 'deck-btn';
+                        btn.innerHTML = `<span class="text-[10px] text-zinc-600 mb-1">${i + 1}</span><span class="px-2 leading-tight uppercase font-black text-[10px]">${scene}</span>`;
+                        btn.onclick = () => control('set', scene);
+                        deck.appendChild(btn);
+                    });
+                }
+
+                data.allScenes.forEach((scene, i) => {
+                    const btn = document.getElementById(`btn-${i}`);
+                    if(btn) btn.classList.toggle('active-btn', scene === data.current);
+                });
+
+                // Status OK
+                document.getElementById('statusText').innerText = "ONLINE";
+                document.getElementById('statusDot').className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]";
+
+            } catch (err) {
+                document.getElementById('statusText').innerText = "OFFLINE";
+                document.getElementById('statusDot').className = "w-3 h-3 rounded-full bg-red-600";
+            }
+        }
+
+        async function control(action, name = '') {
+            const url = name ? `/control/set?name=${encodeURIComponent(name)}` : `/control/${action}`;
+            await fetch(url);
+            setTimeout(updateState, 50); // Küçük bir gecikmeyle durumu hemen çek
+        }
+
+        setInterval(updateState, 1000);
+        updateState();
+    </script>
+</body>
+</html>
