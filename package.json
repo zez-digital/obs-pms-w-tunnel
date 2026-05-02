@@ -1,14 +1,15 @@
 {
-  "name": "obs-remote",
-  "version": "1.0.0",
-  "description": "OBS Presentation Remote Control",
-  "author": "Antigravity",
+  "name": "obs-pms-w-tunnel",
+  "version": "2.0.0",
+  "description": "OBS Presentation Management System with Tunnel",
+  "author": "muozez",
+  "license": "MIT",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "start": "node index.js",
     "bundle": "esbuild index.js --bundle --platform=node --format=cjs --outfile=dist/server.cjs --external:electron",
-    "package": "npm run bundle && copy index.html dist\\index.html /Y && copy settings.html dist\\settings.html /Y && pkg . --targets node18-win-x64 --output obs-remote.exe"
+    "package": "npm run bundle && copy index.html dist\\index.html /Y && copy settings.html dist\\settings.html /Y && pkg . --targets node18-win-x64 --output obs-pms-w-tunnel.exe"
   },
   "bin": "dist/server.cjs",
   "pkg": {

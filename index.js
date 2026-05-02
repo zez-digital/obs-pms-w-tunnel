@@ -10,7 +10,7 @@ import log from 'electron-log/node.js';
 
 // Bundle ve ESM uyumluluğu için
 const _dirname = typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = join(os.homedir(), '.obs-remote-config.json');
+const CONFIG_PATH = join(os.homedir(), '.obs-pms-config.json');
 
 log.info('Uygulama başlatılıyor...');
 
