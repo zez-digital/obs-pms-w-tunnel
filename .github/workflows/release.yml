@@ -59,7 +59,7 @@ jobs:
         with:
           tag_name: v${{ steps.bump_version.outputs.VERSION }}
           name: Release v${{ steps.bump_version.outputs.VERSION }}
-          files: emsaz-remote.exe
+          files: obs-pms-w-tunnel.exe
           body: |
             Automated build for version v${{ steps.bump_version.outputs.VERSION }}
             

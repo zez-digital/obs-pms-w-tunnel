@@ -1,29 +1,32 @@
 {
-  "name": "remote",
-  "version": "1.0.0",
-  "description": "",
+  "name": "obs-pms-w-tunnel",
+  "version": "2.0.0",
+  "description": "OBS Presentation Management System with Tunnel",
   "main": "index.js",
+  "type": "module",
+  "author": "muozez",
+  "license": "MIT",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "bundle": "esbuild index.js --bundle --platform=node --format=cjs --outfile=dist/bundle.js --external:fsevents",
-    "package": "mkdir -p dist && npm run bundle && cp index.html dist/ && pkg dist/bundle.js --targets node18-win-x64 --output emsaz-remote.exe"
+    "package": "mkdir -p dist && npm run bundle && cp index.html dist/ && cp settings.html dist/ && pkg dist/bundle.js --targets node18-win-x64 --output obs-pms-w-tunnel.exe"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
+  "bin": "dist/bundle.js",
+  "pkg": {
+    "assets": [
+      "dist/index.html",
+      "dist/settings.html"
+    ],
+    "outputPath": "."
+  },
   "dependencies": {
     "cors": "^2.8.6",
+    "electron-log": "^5.4.3",
     "express": "^5.2.1",
     "obs-websocket-js": "^5.0.8",
     "socket.io": "^4.8.3",
     "ws": "^8.20.0"
-  },
-  "pkg": {
-    "assets": [
-      "dist/index.html"
-    ],
-    "outputPath": "."
   },
   "devDependencies": {
     "esbuild": "^0.28.0",

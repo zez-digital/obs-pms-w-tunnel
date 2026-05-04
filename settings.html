@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Bağlantı Ayarları</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #09090b; color: #fafafa; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(24, 24, 27, 0.8); backdrop-filter: blur(12px); border: 1px solid #27272a; }
+        input { background: #18181b !important; border: 1px solid #27272a !important; color: white !important; }
+        input:focus { border-color: #3b82f6 !important; ring: 2px #3b82f6; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="glass p-8 rounded-3xl w-full max-w-md shadow-2xl">
+        <div class="mb-8 text-center">
+            <div class="inline-block p-4 rounded-2xl bg-blue-600/10 mb-4">
+                <span class="text-4xl">🔌</span>
+            </div>
+            <h1 class="text-2xl font-black tracking-tight">OBS Bağlantısı</h1>
+            <p class="text-zinc-500 text-sm mt-2">Lütfen OBS WebSocket bilgilerini girin</p>
+        </div>
+
+        <form id="configForm" class="space-y-4">
+            <div>
+                <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Sunucu Adresi</label>
+                <input type="text" id="host" name="host" placeholder="127.0.0.1" class="w-full p-4 rounded-xl outline-none transition-all" value="127.0.0.1">
+            </div>
+            <div>
+                <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Port</label>
+                <input type="text" id="port" name="port" placeholder="4455" class="w-full p-4 rounded-xl outline-none transition-all" value="4455">
+            </div>
+            <div>
+                <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Şifre (Opsiyonel)</label>
+                <input type="password" id="password" name="password" placeholder="OBS WebSocket Şifresi" class="w-full p-4 rounded-xl outline-none transition-all">
+            </div>
+            
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-black text-sm transition-all transform active:scale-[0.98] mt-4 shadow-lg shadow-blue-600/20">
+                BAĞLAN VE KAYDET
+            </button>
+        </form>
+
+        <p class="text-[10px] text-center text-zinc-600 mt-8 uppercase font-black tracking-widest">muozez x OBS PMS with Tunnel</p>
+    </div>
+
+    <script>
+        document.getElementById('configForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            try {
+                const res = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.status === 'ok') {
+                    window.location.href = '/';
+                } else {
+                    alert('Hata: ' + result.message);
+                }
+            } catch (err) {
+                alert('Bağlantı hatası: ' + err.message);
+            }
+        };
+    </script>
+</body>
+</html>
