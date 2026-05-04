@@ -10,7 +10,7 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "bundle": "esbuild index.js --bundle --platform=node --format=cjs --outfile=dist/bundle.js --external:fsevents --loader:.html=text",
-    "package": "npm run bundle && pkg . --targets node18-win-x64 --output obs-pms-w-tunnel.exe"
+    "package": "npm run bundle && pkg . --targets node22-win-x64 --output obs-pms-w-tunnel.exe"
   },
   "bin": "dist/bundle.js",
   "pkg": {
