@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "bundle": "esbuild index.js --bundle --platform=node --format=cjs --outfile=dist/bundle.js --external:fsevents",
-    "package": "npm run bundle && cp index.html dist/ && pkg dist/bundle.js --targets node18-win-x64 --output emsaz-remote.exe"
+    "package": "mkdir -p dist && npm run bundle && cp index.html dist/ && pkg dist/bundle.js --targets node18-win-x64 --output emsaz-remote.exe"
   },
   "keywords": [],
   "author": "",

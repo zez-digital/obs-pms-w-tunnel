@@ -1,0 +1,71 @@
+name: Build and Release EXE
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Git configuration
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        id: bump_version
+        run: |
+          # Increment patch version and get the new version
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "VERSION=${NEW_VERSION#v}" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Build EXE
+        run: npm run package
+
+      - name: Commit and Push version change
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore: bump version to v${{ steps.bump_version.outputs.VERSION }} [skip ci]"
+          git tag v${{ steps.bump_version.outputs.VERSION }}
+          git push origin main --tags
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump_version.outputs.VERSION }}
+          name: Release v${{ steps.bump_version.outputs.VERSION }}
+          files: emsaz-remote.exe
+          body: |
+            Automated build for version v${{ steps.bump_version.outputs.VERSION }}
+            
+            Changes in this version:
+            - Automated version bump and build.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
