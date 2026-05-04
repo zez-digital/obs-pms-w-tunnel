@@ -8,6 +8,10 @@ import os from 'os';
 import { exec } from 'child_process';
 import log from 'electron-log/node.js';
 
+// HTML dosyalarını string olarak al (esbuild loader ile bundle içine gömülecek)
+import indexHtml from './index.html';
+import settingsHtml from './settings.html';
+
 // Bundle ve ESM uyumluluğu için
 const _dirname = typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(os.homedir(), '.obs-pms-config.json');
@@ -80,12 +84,12 @@ async function getObsState() {
 
 app.get('/', (req, res) => {
     if (!isConnected && !fs.existsSync(CONFIG_PATH)) {
-        return res.sendFile(join(_dirname, 'settings.html'));
+        return res.send(settingsHtml);
     }
-    res.sendFile(join(_dirname, 'index.html'));
+    res.send(indexHtml);
 });
 
-app.get('/settings', (req, res) => res.sendFile(join(_dirname, 'settings.html')));
+app.get('/settings', (req, res) => res.send(settingsHtml));
 app.get('/api/state', async (req, res) => res.json(await getObsState()));
 
 app.post('/api/config', async (req, res) => {
