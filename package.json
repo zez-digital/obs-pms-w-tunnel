@@ -1,6 +1,6 @@
 {
   "name": "obs-pms-w-tunnel",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "OBS Presentation Management System with Tunnel",
   "main": "index.js",
   "type": "module",
