@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS Bağlantı Ayarları</title>
+    <title>Sistem Ayarları</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #09090b; color: #fafafa; font-family: 'Inter', sans-serif; }
@@ -16,20 +16,29 @@
     <div class="glass p-8 rounded-3xl w-full max-w-md shadow-2xl">
         <div class="mb-8 text-center">
             <div class="inline-block p-4 rounded-2xl bg-blue-600/10 mb-4">
-                <span class="text-4xl">🔌</span>
+                <span class="text-4xl">⚙️</span>
             </div>
-            <h1 class="text-2xl font-black tracking-tight">OBS Bağlantısı</h1>
-            <p class="text-zinc-500 text-sm mt-2">Lütfen OBS WebSocket bilgilerini girin</p>
+            <h1 class="text-2xl font-black tracking-tight">Sistem Ayarları</h1>
+            <p class="text-zinc-500 text-sm mt-2">OBS ve Auth API bilgilerini girin</p>
         </div>
 
         <form id="configForm" class="space-y-4">
+            <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">Auth API Ayarları</h2>
+            <div>
+                <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">API Key</label>
+                <input type="password" id="apiKey" name="apiKey" placeholder="Auth API Key" class="w-full p-4 rounded-xl outline-none transition-all">
+            </div>
+
+            <hr class="border-zinc-800 my-4">
+            
+            <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest ml-1">OBS WebSocket Ayarları</h2>
             <div>
                 <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Sunucu Adresi</label>
-                <input type="text" id="host" name="host" placeholder="127.0.0.1" class="w-full p-4 rounded-xl outline-none transition-all" value="127.0.0.1">
+                <input type="text" id="host" name="host" placeholder="127.0.0.1" class="w-full p-4 rounded-xl outline-none transition-all">
             </div>
             <div>
                 <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Port</label>
-                <input type="text" id="port" name="port" placeholder="4455" class="w-full p-4 rounded-xl outline-none transition-all" value="4455">
+                <input type="text" id="port" name="port" placeholder="4455" class="w-full p-4 rounded-xl outline-none transition-all">
             </div>
             <div>
                 <label class="block text-[10px] font-black uppercase text-zinc-500 mb-1 ml-1">Şifre (Opsiyonel)</label>
@@ -37,21 +46,70 @@
             </div>
             
             <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 p-4 rounded-xl font-black text-sm transition-all transform active:scale-[0.98] mt-4 shadow-lg shadow-blue-600/20">
-                BAĞLAN VE KAYDET
+                KAYDET VE BAĞLAN
             </button>
         </form>
 
-        <p class="text-[10px] text-center text-zinc-600 mt-8 uppercase font-black tracking-widest">muozez x OBS PMS with Tunnel</p>
+        <div class="mt-6 text-center">
+            <a href="/" class="text-[10px] font-black text-zinc-600 hover:text-zinc-400 uppercase tracking-widest">← Geri Dön</a>
+        </div>
     </div>
 
     <script>
+        const AUTH_API = "https://uhphrh7gwe.execute-api.eu-central-1.amazonaws.com/v1";
+        const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+
+        async function loadConfig() {
+            try {
+                const res = await fetch(`${API_BASE}/api/config`);
+                const config = await res.json();
+                
+                if (config.apiKey) document.getElementById('apiKey').value = config.apiKey;
+                if (config.host) document.getElementById('host').value = config.host;
+                if (config.port) document.getElementById('port').value = config.port;
+                if (config.password) document.getElementById('password').value = config.password;
+
+                // Eğer login kontrolü yapılacaksa buradan yapılabilir
+                checkAuth(config.apiKey);
+            } catch (e) {
+                console.error("Config yüklenemedi");
+            }
+        }
+
+        async function checkAuth(apiKey) {
+            const token = localStorage.getItem('obs_pms_token');
+            if (!token) return; // Login değilse kalsın
+
+            if (!apiKey) return; // API Key yoksa kontrol edemeyiz
+
+            try {
+                const res = await fetch(`${AUTH_API}/me`, {
+                    headers: {
+                        "x-api-key": apiKey,
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (!data.ok) {
+                    localStorage.removeItem('obs_pms_token');
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                // Hata durumunda bir şey yapma
+            }
+        }
+
         document.getElementById('configForm').onsubmit = async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
             
+            const btn = e.target.querySelector('button');
+            btn.innerText = "KAYDEDİLİYOR...";
+            btn.disabled = true;
+
             try {
-                const res = await fetch('/api/config', {
+                const res = await fetch(`${API_BASE}/api/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -64,8 +122,13 @@
                 }
             } catch (err) {
                 alert('Bağlantı hatası: ' + err.message);
+            } finally {
+                btn.innerText = "KAYDET VE BAĞLAN";
+                btn.disabled = false;
             }
         };
+
+        loadConfig();
     </script>
 </body>
 </html>

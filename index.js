@@ -8,23 +8,57 @@ import os from 'os';
 import { exec } from 'child_process';
 import log from 'electron-log/node.js';
 
-// HTML dosyalarını string olarak al (esbuild loader ile bundle içine gömülecek)
-import indexHtml from './index.html';
-import settingsHtml from './settings.html';
+// HTML dosyalarını string olarak al
+const isPkg = typeof process.pkg !== 'undefined';
 
-// Bundle ve ESM uyumluluğu için
-const _dirname = typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
-const CONFIG_PATH = join(os.homedir(), '.obs-pms-config.json');
+// Güvenli rootPath tespiti (ESM/CJS uyumlu)
+let rootPath;
+if (isPkg) {
+    rootPath = join(__dirname, '..');
+} else {
+    try {
+        rootPath = dirname(fileURLToPath(import.meta.url));
+    } catch (e) {
+        rootPath = __dirname;
+    }
+}
+
+const CONFIG_PATH = join(os.homedir(), '.obs-pms-remote-config.json');
+
+// HTML dosyalarını oku (Çoklu konum desteği)
+function loadHtmlFile(filename) {
+    const searchPaths = [
+        join(rootPath, filename),                  // Snapshot root
+        join(__dirname, filename),                 // Snapshot dist
+        join(process.cwd(), filename),             // Mevcut dizin
+        join(dirname(process.execPath), filename)  // EXE'nin yanı
+    ];
+
+    for (const p of searchPaths) {
+        try {
+            if (fs.existsSync(p)) {
+                log.info(`${filename} bulundu: ${p}`);
+                return fs.readFileSync(p, 'utf8');
+            }
+        } catch (e) {}
+    }
+    log.error(`${filename} hiçbir yerde bulunamadı!`);
+    return `<h1>Hata: ${filename} bulunamadı</h1>`;
+}
+
+let indexHtml = loadHtmlFile('index.html');
+let settingsHtml = loadHtmlFile('settings.html');
 
 log.info('Uygulama başlatılıyor...');
+log.info(`Çalışma Modu: ${isPkg ? 'Paketli (EXE)' : 'Geliştirme'}`);
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 const obs = new OBSWebSocket();
 let isConnected = false;
-let config = { host: '127.0.0.1', port: '4455', password: '' };
+let config = { host: '127.0.0.1', port: '4455', password: '', apiKey: '' };
 
 if (fs.existsSync(CONFIG_PATH)) {
     try {
@@ -90,17 +124,20 @@ app.get('/', (req, res) => {
 });
 
 app.get('/settings', (req, res) => res.send(settingsHtml));
+app.get('/api/config', (req, res) => res.json(config));
 app.get('/api/state', async (req, res) => res.json(await getObsState()));
 
 app.post('/api/config', async (req, res) => {
     const newConfig = req.body;
     try {
-        const testObs = new OBSWebSocket();
-        await testObs.connect(`ws://${newConfig.host}:${newConfig.port}`, newConfig.password);
-        await testObs.disconnect();
-        config = newConfig;
+        if (newConfig.host && newConfig.port) {
+            const testObs = new OBSWebSocket();
+            await testObs.connect(`ws://${newConfig.host}:${newConfig.port}`, newConfig.password);
+            await testObs.disconnect();
+        }
+        config = { ...config, ...newConfig };
         fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-        await connectToObs();
+        if (config.host && config.port) await connectToObs();
         res.json({ status: 'ok' });
     } catch (e) {
         res.status(400).json({ status: 'error', message: e.message });

@@ -53,55 +53,249 @@
         .active-btn .scene-name { color: white; }
         .mute-active { background: linear-gradient(145deg, #dc2626, #7f1d1d) !important; border-color: #ef4444 !important; }
         .glass { background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid #27272a; }
+        
+        #authOverlay {
+            position: fixed;
+            inset: 0;
+            background: #09090b;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        input {
+            width: 100%;
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: white;
+            margin-bottom: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: #3b82f6; }
+        .login-btn {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            font-weight: 800;
+            padding: 14px;
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        .login-btn:active { transform: scale(0.98); opacity: 0.9; }
+        #appContent { display: none; }
+
+        #noConfigOverlay {
+            position: fixed;
+            inset: 0;
+            background: #09090b;
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
-    <div class="sticky top-0 z-50 glass p-6 mb-6">
-        <div class="max-w-2xl mx-auto">
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex-1">
-                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">CANLI SAHNE</p>
-                    <h1 id="currentName" class="text-3xl font-black truncate tracking-tighter">---</h1>
-                </div>
-                <div class="text-right ml-4">
-                    <p id="statusText" class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">OFFLINE</p>
-                    <div class="flex justify-end gap-2 items-center">
-                        <a href="/settings" class="text-zinc-500 hover:text-white transition-colors">⚙️</a>
-                        <span id="statusDot" class="w-3 h-3 rounded-full bg-red-600"></span>
-                    </div>
-                </div>
+    <!-- Config Missing Overlay -->
+    <div id="noConfigOverlay">
+        <div class="login-card">
+            <div class="mb-8">
+                <div class="w-16 h-16 bg-red-600/20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl">⚠️</div>
+                <h2 class="text-2xl font-black tracking-tighter">Ayarlar Eksik</h2>
+                <p class="text-zinc-500 text-sm mt-1">Devam etmek için API Key ve OBS bilgilerini girmelisiniz.</p>
             </div>
-            
-            <div class="w-full bg-zinc-800 h-2 rounded-full mb-3 overflow-hidden">
-                <div id="progressBar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
-            </div>
-
-            <div class="flex justify-between text-[10px] font-black uppercase text-zinc-500">
-                <div id="counter">SAHNE 0 / 0</div>
-                <div id="nextLabel" class="text-blue-400 italic font-bold">SIRADA: ---</div>
-            </div>
+            <a href="/settings" class="login-btn block">AYARLARA GİT</a>
         </div>
     </div>
 
-    <div class="max-w-2xl mx-auto px-4">
-        <div class="grid grid-cols-2 gap-4 mb-8">
-            <button onclick="control('prev')" class="bg-zinc-900 h-24 rounded-3xl flex items-center justify-center text-3xl border border-zinc-800 active:scale-95 transition-all shadow-lg">◀️</button>
-            <button onclick="control('next')" class="bg-blue-600 h-24 rounded-3xl flex items-center justify-center text-3xl border border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] active:scale-95 transition-all">▶️</button>
-            <button id="muteBtn" onclick="control('mute')" class="col-span-2 bg-zinc-900 h-16 rounded-3xl flex items-center justify-center gap-4 font-black border border-zinc-800 transition-all shadow-md">
-                <span id="muteIcon" class="text-xl">🔊</span> 
-                <span id="muteText">HOPARLÖR AÇIK</span>
-            </button>
+    <!-- Auth Overlay -->
+    <div id="authOverlay">
+        <div class="login-card">
+            <div class="mb-8 text-center">
+                <div class="w-16 h-16 bg-blue-600 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl">🔐</div>
+                <h2 class="text-2xl font-black tracking-tighter">Giriş Yapın</h2>
+                <p class="text-zinc-500 text-sm mt-1">Devam etmek için kimliğinizi doğrulayın</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınızı girin" required>
+                
+                <label class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 block ml-1">Şifre</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+                
+                <button type="submit" id="loginSubmit" class="login-btn mt-4">Giriş Yap</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Content -->
+    <div id="appContent">
+        <div class="sticky top-0 z-50 glass p-6 mb-6">
+            <div class="max-w-2xl mx-auto">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">CANLI SAHNE</p>
+                        <h1 id="currentName" class="text-3xl font-black truncate tracking-tighter">---</h1>
+                    </div>
+                    <div class="text-right ml-4">
+                        <p id="statusText" class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">OFFLINE</p>
+                        <div class="flex justify-end gap-2 items-center">
+                            <span id="userNameDisplay" class="text-[10px] font-bold text-zinc-400 mr-2">---</span>
+                            <a href="/settings" class="text-zinc-500 hover:text-white transition-colors">⚙️</a>
+                            <span id="statusDot" class="w-3 h-3 rounded-full bg-red-600"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="w-full bg-zinc-800 h-2 rounded-full mb-3 overflow-hidden">
+                    <div id="progressBar" class="bg-blue-600 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+
+                <div class="flex justify-between text-[10px] font-black uppercase text-zinc-500">
+                    <div id="counter">SAHNE 0 / 0</div>
+                    <div id="nextLabel" class="text-blue-400 italic font-bold">SIRADA: ---</div>
+                </div>
+            </div>
         </div>
 
-        <h2 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-4 px-2 italic">Matrix Kontrol</h2>
-        <div id="deck" class="deck-grid"></div>
+        <div class="max-w-2xl mx-auto px-4">
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button onclick="control('prev')" class="bg-zinc-900 h-24 rounded-3xl flex items-center justify-center text-3xl border border-zinc-800 active:scale-95 transition-all shadow-lg">◀️</button>
+                <button onclick="control('next')" class="bg-blue-600 h-24 rounded-3xl flex items-center justify-center text-3xl border border-blue-500 shadow-[0_0_15_rgba(59,130,246,0.3)] active:scale-95 transition-all">▶️</button>
+                <button id="muteBtn" onclick="control('mute')" class="col-span-2 bg-zinc-900 h-16 rounded-3xl flex items-center justify-center gap-4 font-black border border-zinc-800 transition-all shadow-md">
+                    <span id="muteIcon" class="text-xl">🔊</span> 
+                    <span id="muteText">HOPARLÖR AÇIK</span>
+                </button>
+            </div>
+
+            <h2 class="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] mb-4 px-2 italic">Matrix Kontrol</h2>
+            <div id="deck" class="deck-grid"></div>
+        </div>
     </div>
 
     <script>
+        const AUTH_API = "https://uhphrh7gwe.execute-api.eu-central-1.amazonaws.com/v1";
+        const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:3000' : '';
+        let APP_CONFIG = null;
+
+        async function init() {
+            try {
+                const res = await fetch(`${API_BASE}/api/config`);
+                APP_CONFIG = await res.json();
+                
+                if (!APP_CONFIG.apiKey) {
+                    showNoConfig();
+                    return;
+                }
+
+                checkAuth();
+            } catch (e) {
+                console.error("Config fetch failed", e);
+            }
+        }
+
+        async function checkAuth() {
+            const token = localStorage.getItem('obs_pms_token');
+            if (!token) return showLogin();
+
+            try {
+                const res = await fetch(`${AUTH_API}/me`, {
+                    headers: {
+                        "x-api-key": APP_CONFIG.apiKey,
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    hideLogin(data.user.name);
+                } else {
+                    localStorage.removeItem('obs_pms_token');
+                    showLogin();
+                }
+            } catch (e) {
+                console.error("Auth check failed", e);
+                showLogin();
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginSubmit');
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+
+            btn.disabled = true;
+            btn.innerText = "Giriş Yapılıyor...";
+
+            try {
+                const res = await fetch(`${AUTH_API}/login`, {
+                    method: 'POST',
+                    headers: {
+                        "x-api-key": APP_CONFIG.apiKey,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    localStorage.setItem('obs_pms_token', data.token);
+                    hideLogin(data.name);
+                } else {
+                    alert('Hatalı kullanıcı adı veya şifre!');
+                }
+            } catch (e) {
+                alert('Giriş yapılamadı! Lütfen internet bağlantınızı kontrol edin.');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Giriş Yap";
+            }
+        }
+
+        function showNoConfig() {
+            document.getElementById('noConfigOverlay').style.display = 'flex';
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('appContent').style.display = 'none';
+        }
+
+        function showLogin() {
+            document.getElementById('noConfigOverlay').style.display = 'none';
+            document.getElementById('authOverlay').style.display = 'flex';
+            document.getElementById('appContent').style.display = 'none';
+        }
+
+        function hideLogin(name) {
+            document.getElementById('noConfigOverlay').style.display = 'none';
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('appContent').style.display = 'block';
+            document.getElementById('userNameDisplay').innerText = name;
+            startApp();
+        }
+
+        function startApp() {
+            updateState();
+            setInterval(updateState, 1500);
+        }
+
         async function updateState() {
             try {
-                const res = await fetch('/api/state');
+                const res = await fetch(`${API_BASE}/api/state`);
                 const data = await res.json();
                 
                 if (data.error) {
@@ -110,7 +304,6 @@
                     return;
                 }
 
-                // UI Güncelleme
                 document.getElementById('currentName').innerText = data.current;
                 document.getElementById('nextLabel').innerText = `SIRADA: ${data.next}`;
                 document.getElementById('counter').innerText = `SAHNE ${data.index} / ${data.total}`;
@@ -118,7 +311,6 @@
                 const percent = (data.index / data.total) * 100;
                 document.getElementById('progressBar').style.width = `${percent}%`;
 
-                // Hoparlör Mute
                 const mBtn = document.getElementById('muteBtn');
                 if(data.isMuted) {
                     mBtn.classList.add('mute-active');
@@ -130,10 +322,7 @@
                     document.getElementById('muteIcon').innerText = "🔊";
                 }
 
-                // Deck (Matrix)
                 const deck = document.getElementById('deck');
-                
-                // Sahne isimleri değişmiş mi kontrol et
                 const currentButtonNames = Array.from(deck.querySelectorAll('.scene-name')).map(el => el.innerText);
                 const scenesMatch = data.allScenes.length === currentButtonNames.length && 
                                    data.allScenes.every((s, i) => s === currentButtonNames[i]);
@@ -161,7 +350,6 @@
                     }
                 });
 
-                // Status OK
                 document.getElementById('statusText').innerText = "ONLINE";
                 document.getElementById('statusDot').className = "w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]";
 
@@ -172,13 +360,12 @@
         }
 
         async function control(action, name = '') {
-            const url = name ? `/control/set?name=${encodeURIComponent(name)}` : `/control/${action}`;
+            const url = name ? `${API_BASE}/control/set?name=${encodeURIComponent(name)}` : `${API_BASE}/control/${action}`;
             await fetch(url);
-            setTimeout(updateState, 50); // Küçük bir gecikmeyle durumu hemen çek
+            setTimeout(updateState, 50);
         }
 
-        setInterval(updateState, 1000);
-        updateState();
+        init();
     </script>
 </body>
 </html>
